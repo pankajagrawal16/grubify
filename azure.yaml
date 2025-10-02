@@ -1,23 +1,17 @@
 name: grubify
 metadata:
   template: grubify-food-delivery@0.0.1-beta
-  
+
 services:
   api:
     project: ./GrubifyApi
-    language: csharp
+    language: dotnet
     host: containerapp
-    docker:
-      path: ./Dockerfile
-      context: .
-      
+
   frontend:
     project: ./grubify-frontend
     language: js
     host: containerapp
-    docker:
-      path: ./Dockerfile
-      context: .
 
 hooks:
   postdeploy:

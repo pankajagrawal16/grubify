@@ -11,14 +11,11 @@
     "resourceGroupName": {
       "value": "rg-${AZURE_ENV_NAME}"
     },
-    "containerRegistryLoginServer": {
-      "value": "${AZURE_CONTAINER_REGISTRY_ENDPOINT}"
+    "apiImage": {
+      "value": "${SERVICE_API_IMAGE_NAME}"
     },
-    "containerRegistryAdminUsername": {
-      "value": "${AZURE_CONTAINER_REGISTRY_NAME}"
-    },
-    "containerRegistryAdminPassword": {
-      "value": "${AZURE_CONTAINER_REGISTRY_PASSWORD}"
+    "frontendImage": {
+      "value": "${SERVICE_FRONTEND_IMAGE_NAME}"
     }
   }
 }

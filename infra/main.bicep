@@ -12,19 +12,11 @@ param location string
 @description('Name of the resource group')
 param resourceGroupName string = ''
 
-@description('The Container Registry login server.')
-param containerRegistryLoginServer string = ''
+@description('API container image')
+param apiImage string = ''
 
-// Note: These parameters are included for AZD compatibility but not used
-// as we use managed identity for authentication
-#disable-next-line no-unused-params
-@description('The Container Registry admin username.')
-param containerRegistryAdminUsername string = ''
-
-#disable-next-line no-unused-params
-@secure()
-@description('The Container Registry admin password.')
-param containerRegistryAdminPassword string = ''
+@description('Frontend container image')
+param frontendImage string = ''
 
 var abbrs = loadJsonContent('abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, location, environmentName))
@@ -70,7 +62,7 @@ module api 'core/host/container-app.bicep' = {
     containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
     containerRegistryName: containerRegistry.outputs.name
     containerName: 'grubify-api'
-    containerImage: !empty(containerRegistryLoginServer) ? '${containerRegistryLoginServer}/grubify-api:latest' : 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+    containerImage: !empty(apiImage) ? apiImage : 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
     targetPort: 8080
     external: true
     minReplicas: 1  // Always keep 1 instance running
@@ -99,7 +91,7 @@ module frontend 'core/host/container-app.bicep' = {
     containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
     containerRegistryName: containerRegistry.outputs.name
     containerName: 'grubify-frontend'
-    containerImage: !empty(containerRegistryLoginServer) ? '${containerRegistryLoginServer}/grubify-frontend:latest' : 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+    containerImage: !empty(frontendImage) ? frontendImage : 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
     targetPort: 80
     external: true
     minReplicas: 1  // Always keep 1 instance running

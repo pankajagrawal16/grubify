@@ -38,6 +38,7 @@ const CheckoutPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<boolean>(false);
 
   // Form data
   const [deliveryInfo, setDeliveryInfo] = useState({
@@ -89,6 +90,7 @@ const CheckoutPage: React.FC = () => {
 
     try {
       setSubmitting(true);
+      setError(null);
       const orderRequest: PlaceOrderRequest = {
         userId: 'user123',
         restaurantId: cart.items[0]?.foodItem.restaurantId || 1,
@@ -101,9 +103,30 @@ const CheckoutPage: React.FC = () => {
       const order = await orderService.place(orderRequest);
       await cartService.clear('user123');
       navigate(`/order-tracking/${order.id}`);
-    } catch (err) {
-      setError('Failed to place order. Please try again.');
+    } catch (err: any) {
       console.error('Error placing order:', err);
+      
+      // Check if it's a payment error (500 status) - show error page
+      if (err.response?.status === 500) {
+        const errorData = err.response?.data;
+        setPaymentError(true);
+        
+        // Use backend error message if available, otherwise fallback
+        if (errorData?.code === 'PAYMENT_ERROR') {
+          setError(`${errorData.message || 'Payment processing failed'}${errorData.details ? ` - ${errorData.details}` : ''}`);
+        } else {
+          setError('Payment processing failed. Our payment system is currently experiencing technical difficulties.');
+        }
+      } 
+      // Check for other 4xx/5xx errors
+      else if (err.response?.status >= 400) {
+        const errorData = err.response?.data;
+        setError(errorData?.message || `Server error (${err.response.status}). Please try again later.`);
+      }
+      // Network or other errors
+      else {
+        setError('Unable to connect to server. Please check your connection and try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -143,6 +166,79 @@ const CheckoutPage: React.FC = () => {
           <Button variant="contained" onClick={() => navigate('/cart')}>
             Back to Cart
           </Button>
+        </Box>
+      </Container>
+    );
+  }
+
+  // Show payment error page when payment fails
+  if (paymentError) {
+    return (
+      <Container maxWidth="md">
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '60vh',
+            textAlign: 'center',
+            p: 4,
+          }}
+        >
+          <Card sx={{ p: 4, width: '100%', maxWidth: 500, border: '1px solid #f44336' }}>
+            <CreditCardIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
+            <Typography variant="h4" component="h1" gutterBottom color="error.main" fontWeight="bold">
+              Payment System Error
+            </Typography>
+            <Typography variant="h6" gutterBottom sx={{ mb: 3, color: 'text.secondary' }}>
+              Unable to process your order
+            </Typography>
+            
+            <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                <strong>Error Details:</strong><br />
+                {error}
+              </Typography>
+            </Alert>
+            
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              We're experiencing technical difficulties with our payment processing system. This appears to be a system configuration issue.
+            </Typography>
+            
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 4, fontStyle: 'italic' }}>
+              Reference ID: {Date.now().toString(36).toUpperCase()}-{Math.random().toString(36).substr(2, 5).toUpperCase()}
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  setPaymentError(false);
+                  setError(null);
+                  setActiveStep(2); // Go back to review step
+                }}
+                sx={{ minWidth: 120 }}
+              >
+                Retry Payment
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/cart')}
+                sx={{ minWidth: 120 }}
+              >
+                Back to Cart
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => navigate('/')}
+                sx={{ minWidth: 120 }}
+              >
+                Continue Shopping
+              </Button>
+            </Box>
+          </Card>
         </Box>
       </Container>
     );
