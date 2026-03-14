@@ -13,23 +13,39 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
 });
 
-// Add CORS
+// Add CORS — reads AllowedOrigins from config/env vars (e.g. AllowedOrigins__0)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         policy =>
         {
             var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() 
-                ?? new[] { 
-                    "http://localhost:3000", 
-                    "https://localhost:3000",
-                    "https://ca-frontend-ytie5k5kadz6k.kindbush-1a2ac456.eastus2.azurecontainerapps.io"
-                };
+                ?? Array.Empty<string>();
             
-            policy.WithOrigins(allowedOrigins)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            // Always include localhost for development
+            var origins = new HashSet<string>(allowedOrigins)
+            {
+                "http://localhost:3000",
+                "https://localhost:3000"
+            };
+            
+            // Remove empty entries
+            origins.RemoveWhere(string.IsNullOrWhiteSpace);
+            
+            if (origins.Count > 0)
+            {
+                policy.WithOrigins(origins.ToArray())
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            }
+            else
+            {
+                // Fallback: allow any origin without credentials
+                policy.AllowAnyOrigin()
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            }
         });
 });
 
